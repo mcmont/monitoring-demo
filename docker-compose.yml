@@ -1,0 +1,74 @@
+version: '3'
+
+networks:
+  default:
+
+volumes:
+  grafana-db-volume:
+  prometheus-data-volume:
+
+services:
+
+  grafana:
+    container_name: grafana
+    build:
+      context: ./
+      dockerfile: ./grafana/Dockerfile
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=letmein
+      - GF_USERS_ALLOW_SIGN_UP=false
+    ports:
+      - "3000:3000"
+    volumes:
+       - grafana-db-volume:/var/lib/grafana
+    links:
+      - prometheus
+
+  prometheus:
+    container_name: prometheus
+    build:
+      context: ./
+      dockerfile: ./prometheus/Dockerfile
+    command:
+      - "--storage.tsdb.retention=90d"
+      - "--storage.tsdb.path=/prometheus/data"
+      - "--config.file=/etc/prometheus/prometheus.yml"
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus/conf/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus-data-volume:/prometheus/data
+    links:
+      - "cadvisor:cadvisor"
+      - "app:app"
+
+  alertmanager:
+    container_name: alertmanager
+    build:
+      context: ./
+      dockerfile: ./alertmanager/Dockerfile
+    ports:
+      - "9093:9093"
+    links:
+      - prometheus
+
+  cadvisor:
+    container_name: cadvisor
+    image: google/cadvisor:v0.30.2
+    restart: always
+    ports:
+      - "8080:8080"
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:rw
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+
+  app:
+    container_name: app
+    build:
+      context: ./
+      dockerfile: ./app/Dockerfile
+    ports:
+      - "8000:8000"
