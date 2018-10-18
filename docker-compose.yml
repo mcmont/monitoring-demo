@@ -40,8 +40,9 @@ services:
       - ./prometheus/conf/prometheus.yml:/etc/prometheus/prometheus.yml
       - prometheus-data-volume:/prometheus/data
     links:
-      - "cadvisor:cadvisor"
-      - "app:app"
+      - alertmanager
+      - app
+      - cadvisor
 
   alertmanager:
     container_name: alertmanager
@@ -50,8 +51,6 @@ services:
       dockerfile: ./alertmanager/Dockerfile
     ports:
       - "9093:9093"
-    links:
-      - prometheus
 
   cadvisor:
     container_name: cadvisor
